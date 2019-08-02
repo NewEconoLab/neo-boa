@@ -2,6 +2,7 @@ from boa.code import pyop
 from boa.code.method import method as BoaMethod
 from boa.code.action import action as BoaAction
 from boa.code.appcall import appcall as BoaAppcall
+from boa.code.debugmap import DebugMap
 
 from boa.util import BlockType, get_block_type
 from bytecode import UNSET, Bytecode, BasicBlock, ControlFlowGraph, dump_bytecode, Label
@@ -14,6 +15,7 @@ import sys
 import hashlib
 from boa import __version__
 import json
+
 
 
 class Module(object):
@@ -148,7 +150,6 @@ class Module(object):
 
         self.bc = Bytecode.from_code(compiled_source)
         self.cfg = ControlFlowGraph.from_bytecode(self.bc)
-
         source.close()
 
         self.build()
@@ -160,6 +161,7 @@ class Module(object):
         self.app_call_registrations = []
 
         for block in self.cfg:
+            #print(block)
             start_ln = block[0].lineno
             for index, instr in enumerate(block):
                 if instr.lineno != start_ln:
@@ -192,12 +194,10 @@ class Module(object):
                 self.app_call_registrations.append(BoaAppcall(blk))
 
         for m in new_method_blks:
-
             new_method = BoaMethod(self, m, self.module_name, self._extra_instr)
 
             if not self.has_method(new_method.full_name):
                 self.methods.append(new_method)
-
     def write(self):
         """
         Write the current module to a byte string.
@@ -369,10 +369,14 @@ class Module(object):
         avm_name = os.path.splitext(os.path.basename(output_path))[0]
 
         json_data = self.generate_debug_json(avm_name, file_hash)
+        json_map = self.generate_map_json()
 
-        mapfilename = output_path.replace('.avm', '.debug.json')
+        mapfilename = output_path.replace('.avm', '.abi.json')
         with open(mapfilename, 'w+') as out_file:
             out_file.write(json_data)
+        mapfilename = output_path.replace('.avm','.map.json')
+        with open(mapfilename, 'w+') as out_file:
+            out_file.write(json_map)
 
     def generate_debug_json(self, avm_name, file_hash):
 
@@ -395,9 +399,9 @@ class Module(object):
         last_ofs = 0
         fileid = 0
         for i, (key, value) in enumerate(self.all_vm_tokens.items()):
+            #print("key: %s ||| value : %s " % (key,value.vm_op))
             if value.pytoken:
                 pt = value.pytoken
-
                 if pt.file:
                     if pt.file not in files.keys():
                         fileid = len(files.values()) + 1
@@ -416,7 +420,6 @@ class Module(object):
                     breakpoints.append(start_ofs)
 
                 last_ofs = key
-
         if last_ofs >= 0:
             map.append({'start': start_ofs, 'end': last_ofs, 'file': fileid, 'line': lineno})
 
@@ -425,3 +428,20 @@ class Module(object):
         data['files'] = [{'id': val, 'url': os.path.abspath(key)} for key, val in files.items()]
         json_data = json.dumps(data, indent=4)
         return json_data
+
+    def generate_map_json(self):
+        # Initialize if needed
+        if self.all_vm_tokens is None:
+            self.link_methods()
+        d = DebugMap()
+        for i, (key, value) in enumerate(self.all_vm_tokens.items()):
+            #print("key: %s ||| value : %s " % (key,value.vm_op))
+            if value.pytoken:
+                pt = value.pytoken
+                d.addAddrLine(pt.method_name,"%s-%s" % (hex(i),pt.lineno + pt.method_lineno))
+                d.addStartLine(pt.method_name,pt.method_lineno)
+        outString = d.toOutString()
+        json_data = json.dumps(outString,indent=4)
+        return json_data
+
+

@@ -183,7 +183,7 @@ class VMTokenizer(object):
 
         if vmtoken.data is not None and type(vmtoken.data) is not Label:
             self._address += len(data)
-
+        #print("vmtoken: %s , addr: %s" % (vmtoken.vm_op,start_addr))
         self.insert_vm_token_at(vmtoken, start_addr)
 
         return vmtoken

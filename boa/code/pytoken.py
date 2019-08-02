@@ -118,7 +118,7 @@ class PyToken():
         """
 
         op = self.instruction.opcode
-#        print("CONVERTING OP: %s %s " % (self.instruction.name, self.instruction.arg))
+        #print("------CONVERTING OP: %s %s %s" % (self.instruction.name,op,self.instruction.arg))
 
         if op == pyop.NOP:
             tokenizer.convert1(VMOp.NOP, self)
@@ -208,7 +208,9 @@ class PyToken():
             #                if prev_token and type(prev_token.args) is str:
             #                    tokenizer.convert1(VMOp.CAT, self)
             #                else:
+            #print("add: %s %s %s %s" % (op,pyop.BINARY_ADD,pyop.INPLACE_ADD,self))
             tokenizer.convert1(VMOp.ADD, self)
+            #print(aaa.vm_op)
 
         elif op in [pyop.BINARY_SUBTRACT, pyop.INPLACE_SUBTRACT]:
             tokenizer.convert1(VMOp.SUB, self)
