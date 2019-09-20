@@ -434,11 +434,17 @@ class Module(object):
         if self.all_vm_tokens is None:
             self.link_methods()
         d = DebugMap()
+        start_ofs = -1
+        lineno = 0
         for i, (key, value) in enumerate(self.all_vm_tokens.items()):
             #print("key: %s ||| value : %s " % (key,value.vm_op))
             if value.pytoken:
                 pt = value.pytoken
-                d.addAddrLine(pt.method_name,"%s-%s" % (hex(i),pt.lineno + pt.method_lineno))
+                if pt.lineno != lineno:
+                    if start_ofs >= 0:
+                        d.addAddrLine(pt.method_name,"%s-%s" % (hex(start_ofs),pt.lineno + pt.method_lineno))
+                    start_ofs = key
+                    lineno = pt.lineno
                 d.addStartLine(pt.method_name,pt.method_lineno)
         outString = d.toOutString()
         json_data = json.dumps(outString,indent=4)
