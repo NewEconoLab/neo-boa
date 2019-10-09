@@ -18,7 +18,7 @@ class DebugMap():
         for k,v in self.addr_line.items():
             m = {}
             m["name"] = k
-            m["addr"] = hex(self.startLineMap[k])
+            m["addr"] = v[0].split("-")[0]
             m["map"] = v
             array.append(m)
         return array
